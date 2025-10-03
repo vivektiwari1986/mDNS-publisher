@@ -1,13 +1,17 @@
 # mDNS Publisher for Docker
 
-This package provides a containerized solution for publishing multiple mDNS (Avahi) aliases on your local network. It's particularly useful for homelab setups where you want to access different services using `.local` domains. Note: You must have a reverse proxy solution (Traefik, ngnix) that points the xyz.local domain to the IP address and port of the hosted service. mDNS publisher will only publish DNS records for pointing xyz.local to the docker host port 80.
+This package provides a containerized solution for publishing multiple mDNS (Avahi) aliases on your local network. It's particularly useful for homelab setups where you want to access different services using `.local` domains. Note: You must have a reverse proxy solution (Traefik, nginx) that points the xyz.local domain to the IP address and port of the hosted service. mDNS publisher will only publish DNS records for pointing xyz.local to the docker host port 80.
 
 ## Features
 
-- Publish multiple mDNS aliases for your host
-- Based on Alpine Linux for minimal image size
-- Supports custom hostname configurations
-- Host network integration for proper mDNS functionality
+- **Environment Variable Configuration**: No config files needed - just set `MDNS_ALIASES`
+- **Parallel Processing**: All aliases are published simultaneously for faster startup
+- **Robust Error Handling**: Individual alias failures don't stop other aliases from publishing
+- **Comprehensive Logging**: Detailed output showing success/failure status for each alias
+- **Graceful Shutdown**: Handles interrupts cleanly with proper cleanup
+- **Input Validation**: Automatically trims whitespace and skips empty entries
+- **Minimal Footprint**: Based on Alpine Linux for small image size
+- **Host Network Integration**: Proper mDNS functionality with host networking
 
 ## Prerequisites
 
@@ -17,27 +21,9 @@ This package provides a containerized solution for publishing multiple mDNS (Ava
 
 ## Quick Start
 
-1. Create a configuration directory:
-```bash
-mkdir -p config
-```
-
-2. Create an aliases file:
-```bash
-nano config/mdns-aliases
-```
-
-Add your desired aliases, one per line:
-```
-homepage.local
-filebrowser.local
-plex.local
-```
-
-3. Deploy using Docker Compose:
+Deploy using Docker Compose with environment variable configuration:
 
 ```yaml
-
 services:
   mdns-publisher:
     build:
@@ -46,8 +32,8 @@ services:
     container_name: mdns-publisher
     network_mode: host  # Required for mDNS to work properly
     restart: unless-stopped
-    volumes:
-      - /opt/mDNS/config:/config
+    environment:
+      - MDNS_ALIASES=homepage.local,filebrowser.local,plex.local,dashboard.local
 ```
 
 Save this as `docker-compose.yml` and run:
@@ -68,21 +54,27 @@ docker run -d \
   --name mdns-publisher \
   --network host \
   --restart unless-stopped \
-  -v /opt/mDNS/config:/config \
+  -e MDNS_ALIASES="homepage.local,filebrowser.local,plex.local,dashboard.local" \
   mdns-publisher
 ```
 
 ## Configuration
 
-### Aliases File Format
-The `mdns-aliases` file should contain one hostname per line. Each hostname should end with `.local`. For example:
+### Environment Variable Format
+Configure your mDNS aliases using the `MDNS_ALIASES` environment variable with comma-separated values. Each hostname should end with `.local`. For example:
 
+```bash
+MDNS_ALIASES="service1.local,service2.local,dashboard.local,monitoring.local"
 ```
-service1.local
-service2.local
-dashboard.local
-monitoring.local
+
+### Advanced Configuration Examples
+
+**Basic setup:**
+```yaml
+environment:
+  - MDNS_ALIASES=app.local,api.local
 ```
+
 
 ### Verification
 
@@ -93,23 +85,56 @@ To verify your aliases are working:
 docker logs mdns-publisher
 ```
 
+You should see output like:
+```
+Found 4 aliases to publish:
+  - homepage.local
+  - filebrowser.local
+  - plex.local
+  - dashboard.local
+
+Starting parallel alias publishing...
+SUCCESS: homepage.local published successfully
+SUCCESS: filebrowser.local published successfully
+SUCCESS: plex.local published successfully
+SUCCESS: dashboard.local published successfully
+
+=== Alias Publishing Summary ===
+Total aliases processed: 4
+Successful: 4
+Failed: 0
+
+At least one alias published successfully. Service will continue running...
+```
+
 2. Test an alias:
 ```bash
-ping service1.local
+ping homepage.local
 ```
 
 ## Troubleshooting
 
-1. If aliases aren't resolving:
+1. **If aliases aren't resolving:**
    - Verify the container is running: `docker ps`
    - Check container logs: `docker logs mdns-publisher`
-   - Ensure host networking is enabled
-   - Verify your aliases file exists and has correct permissions
+   - Ensure host networking is enabled (`network_mode: host`)
+   - Verify the `MDNS_ALIASES` environment variable is set correctly
 
-2. For container startup issues:
+2. **For container startup issues:**
    - Check if avahi-daemon is running in the container
    - Verify D-Bus is functioning properly
    - Ensure no port conflicts with host avahi-daemon
+
+3. **Environment variable issues:**
+   - Ensure `MDNS_ALIASES` is not empty
+   - Check for proper comma separation
+   - Verify all aliases end with `.local`
+   - Remove any trailing commas or extra spaces
+
+4. **Parallel publishing failures:**
+   - Check logs for individual alias failures
+   - Some aliases may succeed while others fail
+   - The service continues running if at least one alias succeeds
 
 
 ## Contributing
