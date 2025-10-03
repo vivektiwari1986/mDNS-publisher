@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# Environment variable validation
+if [ -z "$MDNS_ALIASES" ]; then
+    echo "Error: MDNS_ALIASES environment variable is not set or empty"
+    echo "Please provide aliases in comma-separated format via MDNS_ALIASES environment variable"
+    exit 1
+fi
+
+echo "Using environment variable configuration for mDNS aliases"
+echo "MDNS_ALIASES content:"
+echo "$MDNS_ALIASES"
+
+# Pass the raw CSV string to Python for parsing
+echo "Passing aliases to Python for parsing and publishing"
+
 # Make sure the D-Bus directory exists
 mkdir -p /var/run/dbus
 
@@ -15,37 +29,6 @@ sleep 2
 # Wait a moment for Avahi to start
 sleep 2
 
-# Create Python script to read aliases and publish them
-cat > /app/publish_aliases.py << 'EOF'
-#!/usr/bin/env python3
-import os
-import sys
-
-def read_aliases(filepath):
-    if not os.path.exists(filepath):
-        print(f"Error: Aliases file {filepath} not found")
-        sys.exit(1)
-        
-    with open(filepath, 'r') as f:
-        return [line.strip() for line in f if line.strip()]
-
-def main():
-    aliases_file = '/config/mdns-aliases'
-    aliases = read_aliases(aliases_file)
-    
-    if not aliases:
-        print("No aliases found in config file")
-        sys.exit(1)
-    
-    cmd = ['/opt/venv/bin/mdns-publish-cname'] + aliases
-    os.execv('/opt/venv/bin/mdns-publish-cname', cmd)
-
-if __name__ == '__main__':
-    main()
-EOF
-
-chmod +x /app/publish_aliases.py
-
-# Activate virtual environment and run the publisher script
+# Activate virtual environment and run the publisher script with CSV string
 . /opt/venv/bin/activate
-exec python3 /app/publish_aliases.py
+exec python3 /app/publish_aliases.py "$MDNS_ALIASES"
