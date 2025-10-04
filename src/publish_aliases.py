@@ -5,6 +5,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from mdns_publisher import publish_single_alias
 
+# Force unbuffered output so logs appear immediately
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 def parse_aliases_from_csv_arg():
     """Parse aliases from CSV string passed as command-line argument"""
     if len(sys.argv) < 2:
@@ -68,7 +72,7 @@ def main():
     results = []
     with ThreadPoolExecutor(max_workers=len(aliases)) as executor:
         # Submit all alias publishing tasks with custom timeout
-        future_to_alias = {executor.submit(publish_single_alias, alias, timeout=timeout): alias for alias in aliases}
+        future_to_alias = {executor.submit(publish_single_alias, alias, '/opt/venv/bin/mdns-publish-cname', timeout): alias for alias in aliases}
         
         # Collect results as they complete
         for future in as_completed(future_to_alias):
@@ -96,16 +100,17 @@ def main():
     
     if successful:
         print(f"\nAt least one alias published successfully. Service will continue running...")
-        # Keep the process running indefinitely
-        try:
-            while True:
-                time.sleep(3600)  # Sleep for 1 hour at a time
-        except KeyboardInterrupt:
-            print("\nReceived interrupt signal, shutting down...")
-            sys.exit(0)
     else:
-        print("\nError: All alias publishing attempts failed")
-        sys.exit(1)
+        print("\nAll alias publishing attempts failed, but service will continue running...")
+    
+    # Keep the process running indefinitely regardless of success/failure
+    print("Service will continue running to maintain mDNS aliases...")
+    try:
+        while True:
+            time.sleep(3600)  # Sleep for 1 hour at a time
+    except KeyboardInterrupt:
+        print("\nReceived interrupt signal, shutting down...")
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()

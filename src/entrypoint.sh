@@ -49,4 +49,4 @@ sleep 2
 
 # Activate virtual environment and run the publisher script with CSV string
 . /opt/venv/bin/activate
-exec python3 /app/publish_aliases.py "$MDNS_ALIASES"
+exec python3 -u /app/publish_aliases.py "$MDNS_ALIASES"
