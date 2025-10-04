@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo "mDNS publisher version 1.0"
 # Environment variable validation
 if [ -z "$MDNS_ALIASES" ]; then
     echo "Error: MDNS_ALIASES environment variable is not set or empty"
