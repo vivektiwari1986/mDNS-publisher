@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import os
 import sys
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from mdns_publisher import publish_single_alias
+
+# Version information
+__version__ = "1.0.0"
 
 # Force unbuffered output so logs appear immediately
 sys.stdout.reconfigure(line_buffering=True)
@@ -55,62 +55,23 @@ def parse_aliases_from_csv_arg():
 
 
 def main():
-    """Main function to publish all aliases in parallel"""
+    """Main function to publish all aliases using execv"""
     aliases = parse_aliases_from_csv_arg()
+    
+    if not aliases:
+        print("No aliases found")
+        sys.exit(1)
     
     print(f"Found {len(aliases)} aliases to publish:")
     for alias in aliases:
         print(f"  - {alias}")
     
-    print("\nStarting parallel alias publishing...")
+    # Prepare command for execv - pass all aliases as arguments
+    cmd = ['/opt/venv/bin/mdns-publish-cname'] + aliases
+    print(f"Executing: {' '.join(cmd)}")
     
-    # Get timeout from environment variable, default to 120 seconds
-    timeout = int(os.environ.get('MDNS_TIMEOUT', '120'))
-    print(f"Using timeout: {timeout} seconds per alias")
-    
-    # Use ThreadPoolExecutor to run alias publishing in parallel
-    results = []
-    with ThreadPoolExecutor(max_workers=len(aliases)) as executor:
-        # Submit all alias publishing tasks with custom timeout
-        future_to_alias = {executor.submit(publish_single_alias, alias, '/opt/venv/bin/mdns-publish-cname', timeout): alias for alias in aliases}
-        
-        # Collect results as they complete
-        for future in as_completed(future_to_alias):
-            alias = future_to_alias[future]
-            try:
-                result = future.result()
-                results.append(result)
-            except Exception as exc:
-                print(f"EXCEPTION: {alias} generated an exception: {exc}")
-                results.append({'alias': alias, 'success': False, 'output': '', 'error': str(exc)})
-    
-    # Analyze results
-    successful = [r for r in results if r['success']]
-    failed = [r for r in results if not r['success']]
-    
-    print("\n=== Alias Publishing Summary ===")
-    print(f"Total aliases processed: {len(aliases)}")
-    print(f"Successful: {len(successful)}")
-    print(f"Failed: {len(failed)}")
-    
-    if failed:
-        print("\nFailed aliases:")
-        for result in failed:
-            print(f"  - {result['alias']}: {result['error']}")
-    
-    if successful:
-        print(f"\nAt least one alias published successfully. Service will continue running...")
-    else:
-        print("\nAll alias publishing attempts failed, but service will continue running...")
-    
-    # Keep the process running indefinitely regardless of success/failure
-    print("Service will continue running to maintain mDNS aliases...")
-    try:
-        while True:
-            time.sleep(3600)  # Sleep for 1 hour at a time
-    except KeyboardInterrupt:
-        print("\nReceived interrupt signal, shutting down...")
-        sys.exit(0)
+    # Replace current process with mdns-publish-cname
+    os.execv('/opt/venv/bin/mdns-publish-cname', cmd)
 
 if __name__ == '__main__':
     main()

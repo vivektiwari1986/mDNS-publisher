@@ -1,17 +1,17 @@
 # mDNS Publisher for Docker
 
-This package provides a containerized solution for publishing multiple mDNS (Avahi) aliases on your local network. It's particularly useful for homelab setups where you want to access different services using `.local` domains. Note: You must have a reverse proxy solution (Traefik, nginx) that points the xyz.local domain to the IP address and port of the hosted service. mDNS publisher will only publish DNS records for pointing xyz.local to the docker host port 80.
+This package provides a containerized solution for publishing multiple mDNS (Avahi) aliases on your local network. It's particularly useful for homelab setups where you want to access different services using `.local` domains. 
+
+The container uses `mdns-publish-cname` to publish all your aliases simultaneously, making them resolve to your Docker host's IP address. You'll need a reverse proxy (like Traefik or nginx) to route the traffic from these `.local` domains to your actual services.
 
 ## Features
 
 - **Environment Variable Configuration**: No config files needed - just set `MDNS_ALIASES`
-- **Parallel Processing**: All aliases are published simultaneously for faster startup
-- **Robust Error Handling**: Individual alias failures don't stop other aliases from publishing
-- **Comprehensive Logging**: Detailed output showing success/failure status for each alias
-- **Graceful Shutdown**: Handles interrupts cleanly with proper cleanup
+- **Simple and Reliable**: Direct execution of `mdns-publish-cname` with all aliases
 - **Input Validation**: Automatically trims whitespace and skips empty entries
 - **Minimal Footprint**: Based on Alpine Linux for small image size
 - **Host Network Integration**: Proper mDNS functionality with host networking
+- **Clean Logging**: Clear output showing which aliases are being published
 
 ## Prerequisites
 
@@ -81,18 +81,9 @@ environment:
   - MDNS_ALIASES=homepage.local,portainer.local,grafana.local,prometheus.local,jellyfin.local
 ```
 
-**With custom timeout and failure behavior:**
-```yaml
-environment:
-  - MDNS_ALIASES=service1.local,service2.local
-  - MDNS_TIMEOUT=180  # 3 minutes timeout per alias (default: 120)
-  - EXIT_ON_FAILURE=false  # Keep retrying on failure (default: true)
-```
-
 ### Environment Variables
 
 - **`MDNS_ALIASES`** (required): Comma-separated list of mDNS aliases to publish
-- **`MDNS_TIMEOUT`** (optional): Timeout in seconds for each alias publishing attempt (default: 120)
 
 
 ### Verification
@@ -106,24 +97,16 @@ docker logs mdns-publisher
 
 You should see output like:
 ```
+Starting D-Bus daemon...
+D-Bus daemon started successfully
+Starting Avahi daemon...
+Avahi daemon started successfully
 Found 4 aliases to publish:
   - homepage.local
   - filebrowser.local
   - plex.local
   - dashboard.local
-
-Starting parallel alias publishing...
-SUCCESS: homepage.local published successfully
-SUCCESS: filebrowser.local published successfully
-SUCCESS: plex.local published successfully
-SUCCESS: dashboard.local published successfully
-
-=== Alias Publishing Summary ===
-Total aliases processed: 4
-Successful: 4
-Failed: 0
-
-At least one alias published successfully. Service will continue running...
+Executing: /opt/venv/bin/mdns-publish-cname homepage.local filebrowser.local plex.local dashboard.local
 ```
 
 2. Test an alias:
@@ -150,10 +133,10 @@ ping homepage.local
    - Verify all aliases end with `.local`
    - Remove any trailing commas or extra spaces
 
-4. **Parallel publishing failures:**
-   - Check logs for individual alias failures
-   - Some aliases may succeed while others fail
-   - The service continues running if at least one alias succeeds
+4. **Publishing issues:**
+   - The container runs `mdns-publish-cname` directly with all aliases
+   - If the process exits, the container will restart (with `restart: unless-stopped`)
+   - Check that all aliases are valid `.local` domains
 
 
 ## Contributing

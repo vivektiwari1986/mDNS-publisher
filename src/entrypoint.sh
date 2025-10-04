@@ -1,5 +1,12 @@
 #!/bin/bash
-echo "mDNS publisher version 1.0"
+
+# Display version information
+if [ -f "/app/VERSION" ]; then
+    echo "mDNS Publisher version: $(cat /app/VERSION)"
+else
+    echo "mDNS Publisher version: unknown"
+fi
+
 # Environment variable validation
 if [ -z "$MDNS_ALIASES" ]; then
     echo "Error: MDNS_ALIASES environment variable is not set or empty"
