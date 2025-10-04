@@ -14,17 +14,35 @@ echo "$MDNS_ALIASES"
 # Pass the raw CSV string to Python for parsing
 echo "Passing aliases to Python for parsing and publishing"
 
-# Make sure the D-Bus directory exists
+# Make sure the D-Bus directory exists and clean up any stale files
 mkdir -p /var/run/dbus
 
+# Remove any existing D-Bus PID file to prevent startup conflicts
+rm -f /run/dbus/dbus.pid /var/run/dbus/dbus.pid
+
 # Start the D-Bus daemon
-dbus-daemon --system --fork
+echo "Starting D-Bus daemon..."
+if dbus-daemon --system --fork; then
+    echo "D-Bus daemon started successfully"
+else
+    echo "Failed to start D-Bus daemon"
+    exit 1
+fi
 
 # Wait a moment for D-Bus to start
 sleep 2
 
+# Remove any existing Avahi PID file to prevent startup conflicts
+rm -f /run/avahi-daemon/pid /var/run/avahi-daemon/pid
+
 # Start the Avahi daemon
-/usr/sbin/avahi-daemon --daemonize
+echo "Starting Avahi daemon..."
+if /usr/sbin/avahi-daemon --daemonize; then
+    echo "Avahi daemon started successfully"
+else
+    echo "Failed to start Avahi daemon"
+    exit 1
+fi
 
 # Wait a moment for Avahi to start
 sleep 2

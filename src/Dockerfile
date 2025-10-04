@@ -27,9 +27,11 @@ RUN . $VIRTUAL_ENV/bin/activate && pip install mdns-publisher
 # Create directory for scripts and config
 RUN mkdir -p /app
 
-# Create entrypoint script
+# Copy scripts to app directory
 COPY entrypoint.sh /app/
-RUN chmod +x /app/entrypoint.sh
+COPY publish_aliases.py /app/
+COPY mdns_publisher.py /app/
+RUN chmod +x /app/entrypoint.sh /app/publish_aliases.py /app/mdns_publisher.py
 
 # Set working directory
 WORKDIR /app
