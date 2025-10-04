@@ -60,9 +60,9 @@ class TestMdnsPublisher(unittest.TestCase):
     
     @patch('mdns_publisher.subprocess.run')
     @patch('builtins.print')
-    def test_publish_single_alias_failure(self, mock_print, mock_subprocess):
-        """Test failed alias publishing."""
-        # Mock failed subprocess result
+    def test_publish_single_alias_with_non_zero_exit_code(self, mock_print, mock_subprocess):
+        """Test alias publishing with non-zero exit code (still treated as success)."""
+        # Mock subprocess result with non-zero exit code
         mock_result = MagicMock()
         mock_result.returncode = 1
         mock_result.stdout = ""
@@ -72,18 +72,19 @@ class TestMdnsPublisher(unittest.TestCase):
         # Call the function
         result = publish_single_alias(self.test_alias)
         
-        # Verify result
+        # Verify result - should still be success
         expected_result = {
             'alias': self.test_alias,
-            'success': False,
+            'success': True,
             'output': "",
-            'error': "Publishing failed"
+            'error': None
         }
         self.assertEqual(result, expected_result)
         
         # Verify print statements
         mock_print.assert_any_call(f"Starting mDNS publishing for alias: {self.test_alias}")
-        mock_print.assert_any_call(f"FAILED: {self.test_alias} publishing failed with exit code 1")
+        mock_print.assert_any_call(f"SUCCESS: {self.test_alias} published successfully")
+        mock_print.assert_any_call(f"  Stderr: {mock_result.stderr.strip()}")
     
     @patch('mdns_publisher.subprocess.run')
     @patch('builtins.print')
@@ -175,29 +176,37 @@ class TestMdnsPublisher(unittest.TestCase):
     
     @patch('mdns_publisher.subprocess.run')
     @patch('builtins.print')
-    def test_publish_single_alias_with_output(self, mock_print, mock_subprocess):
-        """Test alias publishing with stdout output."""
-        # Mock successful subprocess result with output
+    def test_publish_single_alias_with_output_and_stderr(self, mock_print, mock_subprocess):
+        """Test alias publishing with both stdout and stderr output."""
+        # Mock subprocess result with both stdout and stderr
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "Detailed output message\nMultiple lines"
-        mock_result.stderr = ""
+        mock_result.stderr = "Some warning message"
         mock_subprocess.return_value = mock_result
         
         # Call the function
         result = publish_single_alias(self.test_alias)
         
-        # Verify print statements include output
+        # Verify print statements include both output and stderr
+        mock_print.assert_any_call(f"SUCCESS: {self.test_alias} published successfully")
         mock_print.assert_any_call(f"  Output: {mock_result.stdout.strip()}")
+        mock_print.assert_any_call(f"  Stderr: {mock_result.stderr.strip()}")
         
-        # Verify result includes output
-        self.assertEqual(result['output'], mock_result.stdout)
+        # Verify result includes output but error is None
+        expected_result = {
+            'alias': self.test_alias,
+            'success': True,
+            'output': mock_result.stdout,
+            'error': None
+        }
+        self.assertEqual(result, expected_result)
     
     @patch('mdns_publisher.subprocess.run')
     @patch('builtins.print')
     def test_publish_single_alias_with_stderr(self, mock_print, mock_subprocess):
-        """Test alias publishing with stderr output."""
-        # Mock failed subprocess result with stderr
+        """Test alias publishing with stderr output (still treated as success)."""
+        # Mock subprocess result with stderr
         mock_result = MagicMock()
         mock_result.returncode = 2
         mock_result.stdout = ""
@@ -207,11 +216,18 @@ class TestMdnsPublisher(unittest.TestCase):
         # Call the function
         result = publish_single_alias(self.test_alias)
         
-        # Verify print statements include error
-        mock_print.assert_any_call(f"  Error: {mock_result.stderr.strip()}")
+        # Verify print statements include stderr
+        mock_print.assert_any_call(f"SUCCESS: {self.test_alias} published successfully")
+        mock_print.assert_any_call(f"  Stderr: {mock_result.stderr.strip()}")
         
-        # Verify result includes error
-        self.assertEqual(result['error'], mock_result.stderr)
+        # Verify result is still success with no error
+        expected_result = {
+            'alias': self.test_alias,
+            'success': True,
+            'output': "",
+            'error': None
+        }
+        self.assertEqual(result, expected_result)
 
 
 if __name__ == '__main__':

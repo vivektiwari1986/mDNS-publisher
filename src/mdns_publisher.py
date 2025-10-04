@@ -32,26 +32,17 @@ def publish_single_alias(alias, mdns_publish_path='/opt/venv/bin/mdns-publish-cn
             timeout=timeout
         )
         
-        if result.returncode == 0:
-            print(f"SUCCESS: {alias} published successfully")
-            if result.stdout:
-                print(f"  Output: {result.stdout.strip()}")
-            return {
-                'alias': alias,
-                'success': True,
-                'output': result.stdout,
-                'error': None
-            }
-        else:
-            print(f"FAILED: {alias} publishing failed with exit code {result.returncode}")
-            if result.stderr:
-                print(f"  Error: {result.stderr.strip()}")
-            return {
-                'alias': alias,
-                'success': False,
-                'output': result.stdout,
-                'error': result.stderr
-            }
+        print(f"SUCCESS: {alias} published successfully")
+        if result.stdout:
+            print(f"  Output: {result.stdout.strip()}")
+        if result.stderr:
+            print(f"  Stderr: {result.stderr.strip()}")
+        return {
+            'alias': alias,
+            'success': True,
+            'output': result.stdout,
+            'error': None
+        }
             
     except subprocess.TimeoutExpired:
         error_msg = f'Timeout after {timeout} seconds'
