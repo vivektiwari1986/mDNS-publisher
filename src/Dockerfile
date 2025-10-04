@@ -39,7 +39,7 @@ RUN mkdir -p /app
 # Copy scripts and version file to app directory
 COPY entrypoint.sh /app/
 COPY publish_aliases.py /app/
-COPY ../VERSION /app/
+COPY VERSION /app/
 RUN chmod +x /app/entrypoint.sh /app/publish_aliases.py
 
 # Set working directory
