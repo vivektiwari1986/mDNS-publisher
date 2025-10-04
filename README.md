@@ -75,6 +75,25 @@ environment:
   - MDNS_ALIASES=app.local,api.local
 ```
 
+**Multiple services:**
+```yaml
+environment:
+  - MDNS_ALIASES=homepage.local,portainer.local,grafana.local,prometheus.local,jellyfin.local
+```
+
+**With custom timeout and failure behavior:**
+```yaml
+environment:
+  - MDNS_ALIASES=service1.local,service2.local
+  - MDNS_TIMEOUT=180  # 3 minutes timeout per alias (default: 120)
+  - EXIT_ON_FAILURE=false  # Keep retrying on failure (default: true)
+```
+
+### Environment Variables
+
+- **`MDNS_ALIASES`** (required): Comma-separated list of mDNS aliases to publish
+- **`MDNS_TIMEOUT`** (optional): Timeout in seconds for each alias publishing attempt (default: 120)
+
 
 ### Verification
 

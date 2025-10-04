@@ -60,11 +60,15 @@ def main():
     
     print("\nStarting parallel alias publishing...")
     
+    # Get timeout from environment variable, default to 120 seconds
+    timeout = int(os.environ.get('MDNS_TIMEOUT', '120'))
+    print(f"Using timeout: {timeout} seconds per alias")
+    
     # Use ThreadPoolExecutor to run alias publishing in parallel
     results = []
     with ThreadPoolExecutor(max_workers=len(aliases)) as executor:
-        # Submit all alias publishing tasks
-        future_to_alias = {executor.submit(publish_single_alias, alias): alias for alias in aliases}
+        # Submit all alias publishing tasks with custom timeout
+        future_to_alias = {executor.submit(publish_single_alias, alias, timeout=timeout): alias for alias in aliases}
         
         # Collect results as they complete
         for future in as_completed(future_to_alias):

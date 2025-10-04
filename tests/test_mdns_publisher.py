@@ -21,7 +21,7 @@ class TestMdnsPublisher(unittest.TestCase):
         """Set up test fixtures."""
         self.test_alias = "test-alias.local"
         self.test_mdns_path = "/opt/venv/bin/mdns-publish-cname"
-        self.test_timeout = 30
+        self.test_timeout = 120
     
     @patch('mdns_publisher.subprocess.run')
     @patch('builtins.print')

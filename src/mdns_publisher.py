@@ -5,7 +5,7 @@ Module for publishing individual mDNS aliases using mdns-publish-cname.
 import subprocess
 
 
-def publish_single_alias(alias, mdns_publish_path='/opt/venv/bin/mdns-publish-cname', timeout=30):
+def publish_single_alias(alias, mdns_publish_path='/opt/venv/bin/mdns-publish-cname', timeout=120):
     """
     Publish a single alias using mdns-publish-cname.
     
